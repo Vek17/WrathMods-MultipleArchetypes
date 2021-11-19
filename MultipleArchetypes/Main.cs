@@ -28,8 +28,11 @@ namespace MultipleArchetypes {
         public static Settings Settings;
         public static bool Enabled;
         public static ModEntry Mod;
-        [System.Diagnostics.Conditional("DEBUG")]
         public static void Log(string msg) {
+            Mod.Logger.Log(msg);
+        }
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void LogDebug(string msg) {
             Mod.Logger.Log(msg);
         }
 
@@ -133,6 +136,48 @@ namespace MultipleArchetypes {
                 }
             }
         }
+        [HarmonyPatch(typeof(CharGenClassSelectorItemVM), nameof(CharGenClassSelectorItemVM.GetArchetypesList), new Type[] { typeof(BlueprintCharacterClass) })]
+        static class CharGenClassSelectorItemVM_GetArchetypesList_Patch {
+            public static List<NestedSelectionGroupEntityVM> archetypes;
+            static void Postfix(CharGenClassSelectorItemVM __instance, List<NestedSelectionGroupEntityVM> __result) {
+                archetypes = __result;
+            }
+        }
+        [HarmonyPatch(typeof(NestedSelectionGroupEntityVM), nameof(NestedSelectionGroupEntityVM.SetSelected), new Type[] { typeof(bool) })]
+        static class NestedSelectionGroupEntityVM_SetSelected_Patch {
+            static bool Prefix(NestedSelectionGroupEntityVM __instance, ref bool state) {
+                var VM = __instance as CharGenClassSelectorItemVM;
+                var controller = Game.Instance?.LevelUpController;
+                if (VM == null || controller == null) { return true; }
+                var progression = controller.Preview?.Progression;
+                var classData = controller?.Preview?.Progression?.GetClassData(controller.State.SelectedClass);
+                if (classData == null) { return true; }
+                var preState = state;
+                var hasArchetype = classData.Archetypes.HasItem(VM.Archetype);
+                state |= hasArchetype;
+                if (!state) {
+                    if (progression != null && VM.Archetype != null) {
+                        VM.SetAvailableState(progression.CanAddArchetype(classData.CharacterClass, VM.Archetype));
+                    }
+                }
+                return true;
+            }
+        }
+        [HarmonyPatch(typeof(NestedSelectionGroupEntityVM), nameof(NestedSelectionGroupEntityVM.SetSelectedFromView), new Type[] { typeof(bool) })]
+        static class NestedSelectionGroupEntityVM_SetSelectedFromView_Patch {
+            static bool Prefix(NestedSelectionGroupEntityVM __instance, bool state) {
+                if (!state && !__instance.AllowSwitchOff) {
+                    return false;
+                }
+                __instance.IsSelected.Value = state;
+                __instance.RefreshView.Execute();
+                if (state) {
+                    __instance.DoSelectMe();
+                }
+                __instance.SetSelected(state);
+                return false;
+            }
+        }
         [HarmonyPatch(typeof(CharGenClassPhaseVM), nameof(CharGenClassPhaseVM.OnSelectorArchetypeChanged), new Type[] { typeof(BlueprintArchetype) })]
         static class CharGenClassPhaseVM_OnSelectorArchetypeChanged_Patch {
             static bool Prefix(CharGenClassPhaseVM __instance, BlueprintArchetype archetype) {
@@ -153,12 +198,17 @@ namespace MultipleArchetypes {
                 }
                 __instance.LevelUpController.RemoveArchetype(archetype);
                 if (archetype != null && !__instance.LevelUpController.AddArchetype(archetype)) {
-                    MainThreadDispatcher.Post(delegate (object _)
-                    {
+                    MainThreadDispatcher.Post(delegate (object _) {
                         __instance.SelectedArchetypeVM.Value = null;
                     }, null);
                 }
+                /*
+                CharGenClassSelectorItemVM_GetArchetypesList_Patch.archetypes
+                    .OfType<CharGenClassSelectorItemVM>()
+                    .Where(VM => classData?.Archetypes.HasItem(VM.Archetype) ?? false)
+                    .ForEach(VM => VM.SetSelected(true));
                 __instance.UpdateClassInformation();
+                */
                 return false;
             }
         }
