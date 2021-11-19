@@ -1,0 +1,13 @@
+﻿{
+    "AssemblyName": "MultipleArchetypes.dll",
+    "Author": "Sean Petrie",
+    "DisplayName": "Multiple Archetypes",
+    "EntryMethod": "MultipleArchetypes.Main.Load",
+    "GameVersion": "1.0.0",
+    "HomePage": "https://github.com/Vek17/WrathMods-DifficultyTweaks/releases",
+    "Id": "MultipleArchetypes",
+    "ManagerVersion": "0.23.0",
+    "Repository": "https://raw.githubusercontent.com/Vek17/WrathMods-DifficultyTweaks/master/Repository.json",
+    "Requirements": [],
+    "Version": "0.0.1"
+}
