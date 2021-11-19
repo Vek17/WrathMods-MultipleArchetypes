@@ -1,8 +1,8 @@
 ﻿{
     "Releases": [
-        {
-            "Id": "DifficultyTweaks",
-            "Version": "1.0.0"
-        }
+      {
+        "Id": "MultipleArchetypes",
+        "Version": "0.0.1"
+      }
     ]
 }
