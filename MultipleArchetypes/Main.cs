@@ -146,6 +146,7 @@ namespace MultipleArchetypes {
         [HarmonyPatch(typeof(NestedSelectionGroupEntityVM), nameof(NestedSelectionGroupEntityVM.SetSelected), new Type[] { typeof(bool) })]
         static class NestedSelectionGroupEntityVM_SetSelected_Patch {
             static bool Prefix(NestedSelectionGroupEntityVM __instance, ref bool state) {
+                if (!Settings.MultiArchetype) { return true; }
                 var VM = __instance as CharGenClassSelectorItemVM;
                 var controller = Game.Instance?.LevelUpController;
                 if (VM == null || controller == null) { return true; }
@@ -166,6 +167,7 @@ namespace MultipleArchetypes {
         [HarmonyPatch(typeof(NestedSelectionGroupEntityVM), nameof(NestedSelectionGroupEntityVM.SetSelectedFromView), new Type[] { typeof(bool) })]
         static class NestedSelectionGroupEntityVM_SetSelectedFromView_Patch {
             static bool Prefix(NestedSelectionGroupEntityVM __instance, bool state) {
+                if (!Settings.MultiArchetype) { return true; }
                 if (!state && !__instance.AllowSwitchOff) {
                     return false;
                 }
