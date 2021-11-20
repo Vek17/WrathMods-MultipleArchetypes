@@ -1,10 +1,10 @@
 ﻿using HarmonyLib;
 using Kingmaker;
-using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
-using Kingmaker.UI.MVVM._PCView.CharGen.Phases.Class;
-using Kingmaker.UI.MVVM._PCView.Other.NestedSelectionGroup;
+using Kingmaker.Blueprints.Root;
+using Kingmaker.UI.Common;
 using Kingmaker.UI.MVVM._VM.CharGen.Phases.Class;
+using Kingmaker.UI.MVVM._VM.CharGen.Phases.Class.Mechanic;
 using Kingmaker.UI.MVVM._VM.Other.NestedSelectionGroup;
 using Kingmaker.UI.MVVM._VM.ServiceWindows.CharacterInfo.Sections.LevelClassScores.Classes;
 using Kingmaker.UI.MVVM._VM.ServiceWindows.CharacterInfo.Sections.Progression.ChupaChupses;
@@ -176,7 +176,7 @@ namespace MultipleArchetypes {
                 if (state) {
                     __instance.DoSelectMe();
                 }
-                __instance.SetSelected(state);
+                //__instance.SetSelected(state);
                 return false;
             }
         }
@@ -193,8 +193,7 @@ namespace MultipleArchetypes {
                     .Progression.GetClassData(__instance.LevelUpController.State.SelectedClass);
 
                 if (classData != null && archetype != null ? !Progression.CanAddArchetype(classData.CharacterClass, archetype) : true) {
-                    classData.Archetypes.ForEach(delegate (BlueprintArchetype a)
-                    {
+                    classData.Archetypes.ForEach(delegate (BlueprintArchetype a) {
                         __instance.LevelUpController.RemoveArchetype(a);
                     });
                 }
@@ -204,6 +203,7 @@ namespace MultipleArchetypes {
                         __instance.SelectedArchetypeVM.Value = null;
                     }, null);
                 }
+                __instance.UpdateClassInformation();
                 return false;
             }
         }
@@ -229,7 +229,7 @@ namespace MultipleArchetypes {
                 var archetypeString = string.Join("/", addArchetypes.Select(a => a.Archetype.Name));
                 if (!string.IsNullOrEmpty(archetypeString)) {
                     __instance.Name = string.Join(" ", classBlueprint.Name, $"({archetypeString})");
-                } 
+                }
             }
         }
         [HarmonyPatch(typeof(ProgressionVM), nameof(ProgressionVM.SetClassArchetypeDifType), new Type[] { typeof(ProgressionVM.FeatureEntry) })]
@@ -250,14 +250,90 @@ namespace MultipleArchetypes {
                 }
             }
         }
-        [HarmonyPatch(typeof(CharGenClassSelectorItemPCView), nameof(CharGenClassSelectorItemPCView.ApplyOnClick))]
-        static class ArchetypesPCViews {
-            public static Dictionary<BlueprintArchetype, CharGenClassSelectorItemPCView> Archetypes = new();
-            static void PostFix(CharGenClassSelectorItemPCView __instance) {
-                if (__instance.ViewModel.Archetype != null) {
-                    Archetypes[__instance.ViewModel.Archetype] = __instance;
-                }
+        //Details Tab in CharGen
+        [HarmonyPatch(typeof(CharGenClassCasterStatsVM), MethodType.Constructor, new Type[]{ typeof(BlueprintCharacterClass), typeof(BlueprintArchetype) })]
+        static class CharGenClassCasterStatsVM_MultiArchetype_Patch {
+            static void Postfix(CharGenClassCasterStatsVM __instance, BlueprintCharacterClass valueClass, BlueprintArchetype valueArchetype) {
+                var controller = Game.Instance?.LevelUpController;
+                if (controller == null) { return; }
+                var classData = controller.Preview?.Progression?.GetClassData(valueClass);
+                if (classData == null) { return; }
+                __instance.CanCast.Value = classData.Spellbook != null;
+                if (classData.Spellbook == null) { return; }
+                var changeTypeArchetype = classData.Archetypes?.Where(a => a.ChangeCasterType).FirstOrDefault();
+                __instance.MaxSpellsLevel.Value = classData.Spellbook.MaxSpellLevel.ToString();
+                __instance.CasterAbilityScore.Value = LocalizedTexts.Instance.Stats.GetText(classData.Spellbook.CastingAttribute);
+                __instance.CasterMindType.Value = ((changeTypeArchetype == null) ? 
+                    (UIUtilityUnit.GetCasterMindType(valueClass) ?? "—") : (UIUtilityUnit.GetCasterMindType(changeTypeArchetype) ?? "—"));
+                __instance.SpellbookUseType.Value = UIUtilityUnit.GetCasterSpellbookUseType(classData.Spellbook);
             }
         }
+        //Details Tab in CharGen
+        [HarmonyPatch(typeof(CharGenClassMartialStatsVM), MethodType.Constructor, new Type[] { typeof(BlueprintCharacterClass), typeof(BlueprintArchetype), typeof(UnitDescriptor) })]
+        static class CharGenClassMartialStatsVM_MultiArchetype_Patch {
+            static void Postfix(CharGenClassMartialStatsVM __instance, BlueprintCharacterClass valueClass, BlueprintArchetype valueArchetype, UnitDescriptor unit) {
+                Main.Log("CharGenClassMartialStatsVM::Triggered");
+                var controller = Game.Instance?.LevelUpController;
+                if (controller == null) { return; }
+                var classData = controller.Preview?.Progression?.GetClassData(valueClass);
+                if (classData == null) { return; }
+                Main.Log("Made it to override");
+                __instance.Fortitude.Value = UIUtilityUnit.GetStatProgressionGrade(classData.FortitudeSave);
+                __instance.Will.Value = UIUtilityUnit.GetStatProgressionGrade(classData.WillSave);
+                __instance.Reflex.Value = UIUtilityUnit.GetStatProgressionGrade(classData.ReflexSave);
+                __instance.BAB.Value = UIUtilityUnit.GetStatProgressionGrade(classData.BaseAttackBonus);
+            }
+        }
+        //Details Tab in CharGen
+        [HarmonyPatch(typeof(CharGenClassSkillsVM), MethodType.Constructor, new Type[] { typeof(BlueprintCharacterClass), typeof(BlueprintArchetype) })]
+        static class CharGenClassSkillsVM_MultiArchetype_Patch {
+            static void Postfix(CharGenClassSkillsVM __instance, BlueprintCharacterClass valueClass, BlueprintArchetype valueArchetype) {
+                Main.Log("CharGenClassSkillsVM::Triggered");
+                var controller = Game.Instance?.LevelUpController;
+                if (controller == null) { return; }
+                var classData = controller.Preview?.Progression?.GetClassData(valueClass);
+                if (classData == null) { return; }
+                Main.Log("Made it to override");
+                var classSkills = classData.Archetypes.SelectMany(a => a.ClassSkills)
+                    .Concat(classData.CharacterClass.ClassSkills).Distinct().ToArray();
+                __instance.ClassSkills.Clear();
+                foreach (var skill in classSkills) {
+                    CharGenClassStatEntryVM charGenClassStatEntryVM = new CharGenClassStatEntryVM(skill);
+                    __instance.AddDisposable(charGenClassStatEntryVM);
+                    __instance.ClassSkills.Add(charGenClassStatEntryVM);
+                }
+                return;
+            }
+        }
+        //Details Tab in CharGen
+        [HarmonyPatch(typeof(CharGenClassPhaseVM), nameof(CharGenClassPhaseVM.UpdateClassInformation))]
+        static class CharGenClassPhaseVM_UpdateClassInformation_MultiArchetype_Patch {
+            static void Postfix(CharGenClassPhaseVM __instance) {
+                Main.Log("CharGenClassPhaseVM::UpdateClassInformation");
+                var controller = Game.Instance?.LevelUpController;
+                if (controller == null) { return; }
+                var classData = controller.Preview?.Progression?.GetClassData(__instance.SelectedClassVM.Value?.Class);
+                if (classData == null) { return; }
+                Main.Log("Made it to override");
+                var classSkills = classData.Archetypes.SelectMany(a => a.ClassSkills)
+                    .Concat(classData.CharacterClass.ClassSkills).Distinct().ToArray();
+                //this.SelectedClassVM.Value.Class.Name + " — " + this.SelectedArchetypeVM.Value.Archetype.Name;
+                string ArchetypeName = string.Join("/", classData.Archetypes.Select(a => a.Name));
+                if (!string.IsNullOrEmpty(ArchetypeName)) {
+                    __instance.ClassDisplayName.Value = string.Join(" ", classData.CharacterClass.Name, $"({ArchetypeName})");
+                }
+                string ArchetypeDrescription = string.Join("\n\n", classData.Archetypes.Select(a => a.Description));
+                if (!string.IsNullOrEmpty(ArchetypeName)) {
+                    __instance.ClassDescription.Value = ArchetypeDrescription;
+                }
+                return;
+            }
+        }
+        //CharGenClassSkillsVM
+        //CharGenClassCasterStatsVM
+        //CharGenClassMartialStatsVM
+        //UpdateClassInformation
+        //ApplyClassMechanics - ApplyClassSkills
+        // Spellcasting in Progression view?
     }
 }
