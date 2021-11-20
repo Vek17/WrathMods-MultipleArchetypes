@@ -152,12 +152,12 @@ namespace MultipleArchetypes {
                 var progression = controller.Preview?.Progression;
                 var classData = controller?.Preview?.Progression?.GetClassData(controller.State.SelectedClass);
                 if (classData == null) { return true; }
-                var preState = state;
+                if (controller.Unit.Progression.GetClassLevel(VM.Class) >= 1) { return true; }
                 var hasArchetype = classData.Archetypes.HasItem(VM.Archetype);
                 state |= hasArchetype;
                 if (!state) {
                     if (progression != null && VM.Archetype != null) {
-                        VM.SetAvailableState(progression.CanAddArchetype(classData.CharacterClass, VM.Archetype));
+                        VM.SetAvailableState(progression.CanAddArchetype(classData.CharacterClass, VM.Archetype) && VM.PrerequisitesDone);
                     }
                 }
                 return true;
@@ -202,13 +202,6 @@ namespace MultipleArchetypes {
                         __instance.SelectedArchetypeVM.Value = null;
                     }, null);
                 }
-                /*
-                CharGenClassSelectorItemVM_GetArchetypesList_Patch.archetypes
-                    .OfType<CharGenClassSelectorItemVM>()
-                    .Where(VM => classData?.Archetypes.HasItem(VM.Archetype) ?? false)
-                    .ForEach(VM => VM.SetSelected(true));
-                __instance.UpdateClassInformation();
-                */
                 return false;
             }
         }
