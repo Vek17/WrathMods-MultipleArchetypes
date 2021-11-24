@@ -329,11 +329,10 @@ namespace MultipleArchetypes {
                 return;
             }
         }
-        //CharGenClassSkillsVM
-        //CharGenClassCasterStatsVM
-        //CharGenClassMartialStatsVM
-        //UpdateClassInformation
-        //ApplyClassMechanics - ApplyClassSkills
-        // Spellcasting in Progression view?
+
+        //ClassProgressionVM
+        //base.AddDisposable(this.m_LevelProgressionVM = new LevelProgressionVM(this.Level));
+		//base.AddDisposable(this.StatsProgressionVM = new StatsProgressionVM(this.m_UnitClass, this.m_UnitArchetype, this.m_Unit, this.m_LevelProgressionVM));
+		//base.AddDisposable(this.SpellbookProgressionVM = new SpellbookProgressionVM(this.m_UnitClass, this.m_UnitArchetype, this.m_Unit, this.m_LevelProgressionVM));
     }
 }
