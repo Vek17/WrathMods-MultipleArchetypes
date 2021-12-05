@@ -6,10 +6,3 @@ This mod allows you to stack compatable archetypes
 2. Run Unity Mod Manger and set it up to find Wrath of the Righteous
 3. Download the Multiple Archetypes mod
 4. Install the mod by dragging the zip file from step 5 into the Unity Mod Manager window under the Mods tab
-
-
-How to use
-
-1. Use Ctrl+F10 to open the mod menu manager
-2. Expand the options for the mod
-3. Select your desired difficulty override
