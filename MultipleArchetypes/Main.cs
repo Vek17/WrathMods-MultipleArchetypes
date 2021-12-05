@@ -9,6 +9,7 @@ using Kingmaker.UI.MVVM._VM.Other.NestedSelectionGroup;
 using Kingmaker.UI.MVVM._VM.ServiceWindows.CharacterInfo.Sections.LevelClassScores.Classes;
 using Kingmaker.UI.MVVM._VM.ServiceWindows.CharacterInfo.Sections.Progression.ChupaChupses;
 using Kingmaker.UI.MVVM._VM.ServiceWindows.CharacterInfo.Sections.Progression.Main;
+using Kingmaker.UI.MVVM._VM.ServiceWindows.CharacterInfo.Sections.Progression.Spellbook;
 using Kingmaker.UI.MVVM._VM.Tooltip.Templates;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Class.LevelUp;
@@ -101,6 +102,14 @@ namespace MultipleArchetypes {
                 string Name = string.Join("/", unitClass.Archetypes.Select(a => a.Name));
                 if (!string.IsNullOrEmpty(Name)) {
                     __instance.Name = string.Join(" ", unitClass.CharacterClass.Name, $"({Name})");
+                }
+                var castingArchetype = unitClass.Archetypes.Where(a => a.ReplaceSpellbook != null).FirstOrDefault();
+                if (castingArchetype != null) {
+                    __instance.AddDisposable(__instance.SpellbookProgressionVM = new SpellbookProgressionVM(
+                        __instance.m_UnitClass, 
+                        castingArchetype, 
+                        __instance.m_Unit, 
+                        __instance.m_LevelProgressionVM));
                 }
             }
         }
@@ -229,6 +238,14 @@ namespace MultipleArchetypes {
                 var archetypeString = string.Join("/", addArchetypes.Select(a => a.Archetype.Name));
                 if (!string.IsNullOrEmpty(archetypeString)) {
                     __instance.Name = string.Join(" ", classBlueprint.Name, $"({archetypeString})");
+                }
+                var castingArchetype = addArchetypes.Select(a => a.Archetype).Where(a => a.ReplaceSpellbook != null).FirstOrDefault();
+                if (castingArchetype != null) {
+                    __instance.AddDisposable(__instance.SpellbookProgressionVM = new SpellbookProgressionVM(
+                        __instance.m_UnitClass,
+                        castingArchetype,
+                        __instance.m_Unit,
+                        __instance.m_LevelProgressionVM));
                 }
             }
         }
