@@ -201,7 +201,7 @@ namespace MultipleArchetypes {
                 ClassData classData = __instance.LevelUpController.Preview
                     .Progression.GetClassData(__instance.LevelUpController.State.SelectedClass);
 
-                if (classData != null && archetype != null ? !Progression.CanAddArchetype(classData.CharacterClass, archetype) : true) {
+                if (classData != null && (archetype != null ? !Progression.CanAddArchetype(classData.CharacterClass, archetype) : true)) {
                     classData.Archetypes.ForEach(delegate (BlueprintArchetype a) {
                         __instance.LevelUpController.RemoveArchetype(a);
                     });
