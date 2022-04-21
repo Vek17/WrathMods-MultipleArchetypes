@@ -15,6 +15,7 @@ using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Class.LevelUp;
 using Kingmaker.UnitLogic.Class.LevelUp.Actions;
 using Kingmaker.Utility;
+using Owlcat.Runtime.UI.Tooltips;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -197,20 +198,16 @@ namespace MultipleArchetypes {
                 if (__instance.LevelUpController.State.SelectedClass == null) {
                     return false;
                 }
-                UnitProgressionData Progression = __instance.LevelUpController.Preview.Progression;
-                ClassData classData = __instance.LevelUpController.Preview
+                var Progression = __instance.LevelUpController.Preview.Progression;
+                var classData = __instance.LevelUpController.Preview
                     .Progression.GetClassData(__instance.LevelUpController.State.SelectedClass);
 
                 if (classData != null && (archetype != null ? !Progression.CanAddArchetype(classData.CharacterClass, archetype) : true)) {
-                    classData.Archetypes.ForEach(delegate (BlueprintArchetype a) {
-                        __instance.LevelUpController.RemoveArchetype(a);
-                    });
+                    classData.Archetypes.ForEach(a => __instance.LevelUpController.RemoveArchetype(a));
                 }
                 __instance.LevelUpController.RemoveArchetype(archetype);
                 if (archetype != null && !__instance.LevelUpController.AddArchetype(archetype)) {
-                    MainThreadDispatcher.Post(delegate (object _) {
-                        __instance.SelectedArchetypeVM.Value = null;
-                    }, null);
+                    MainThreadDispatcher.Post( _ =>  __instance.SelectedArchetypeVM.Value = null, null);
                 }
                 __instance.UpdateClassInformation();
                 return false;
@@ -289,12 +286,12 @@ namespace MultipleArchetypes {
         [HarmonyPatch(typeof(CharGenClassMartialStatsVM), MethodType.Constructor, new Type[] { typeof(BlueprintCharacterClass), typeof(BlueprintArchetype), typeof(UnitDescriptor) })]
         static class CharGenClassMartialStatsVM_MultiArchetype_Patch {
             static void Postfix(CharGenClassMartialStatsVM __instance, BlueprintCharacterClass valueClass, BlueprintArchetype valueArchetype, UnitDescriptor unit) {
-                Main.Log("CharGenClassMartialStatsVM::Triggered");
+                //Main.Log("CharGenClassMartialStatsVM::Triggered");
                 var controller = Game.Instance?.LevelUpController;
                 if (controller == null) { return; }
                 var classData = controller.Preview?.Progression?.GetClassData(valueClass);
                 if (classData == null) { return; }
-                Main.Log("Made it to override");
+                //Main.Log("Made it to override");
                 __instance.Fortitude.Value = UIUtilityUnit.GetStatProgressionGrade(classData.FortitudeSave);
                 __instance.Will.Value = UIUtilityUnit.GetStatProgressionGrade(classData.WillSave);
                 __instance.Reflex.Value = UIUtilityUnit.GetStatProgressionGrade(classData.ReflexSave);
@@ -305,12 +302,12 @@ namespace MultipleArchetypes {
         [HarmonyPatch(typeof(CharGenClassSkillsVM), MethodType.Constructor, new Type[] { typeof(BlueprintCharacterClass), typeof(BlueprintArchetype) })]
         static class CharGenClassSkillsVM_MultiArchetype_Patch {
             static void Postfix(CharGenClassSkillsVM __instance, BlueprintCharacterClass valueClass, BlueprintArchetype valueArchetype) {
-                Main.Log("CharGenClassSkillsVM::Triggered");
+                //Main.Log("CharGenClassSkillsVM::Triggered");
                 var controller = Game.Instance?.LevelUpController;
                 if (controller == null) { return; }
                 var classData = controller.Preview?.Progression?.GetClassData(valueClass);
                 if (classData == null) { return; }
-                Main.Log("Made it to override");
+                //Main.Log("Made it to override");
                 var classSkills = classData.Archetypes.SelectMany(a => a.ClassSkills)
                     .Concat(classData.CharacterClass.ClassSkills).Distinct().ToArray();
                 __instance.ClassSkills.Clear();
@@ -326,12 +323,12 @@ namespace MultipleArchetypes {
         [HarmonyPatch(typeof(CharGenClassPhaseVM), nameof(CharGenClassPhaseVM.UpdateClassInformation))]
         static class CharGenClassPhaseVM_UpdateClassInformation_MultiArchetype_Patch {
             static void Postfix(CharGenClassPhaseVM __instance) {
-                Main.Log("CharGenClassPhaseVM::UpdateClassInformation");
+                //Main.Log("CharGenClassPhaseVM::UpdateClassInformation");
                 var controller = Game.Instance?.LevelUpController;
                 if (controller == null) { return; }
                 var classData = controller.Preview?.Progression?.GetClassData(__instance.SelectedClassVM.Value?.Class);
                 if (classData == null) { return; }
-                Main.Log("Made it to override");
+                //Main.Log("Made it to override");
                 var classSkills = classData.Archetypes.SelectMany(a => a.ClassSkills)
                     .Concat(classData.CharacterClass.ClassSkills).Distinct().ToArray();
                 //this.SelectedClassVM.Value.Class.Name + " — " + this.SelectedArchetypeVM.Value.Archetype.Name;
