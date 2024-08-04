@@ -190,24 +190,42 @@ namespace MultipleArchetypes {
                 return false;
             }
         }
-        [HarmonyPatch(typeof(CharGenClassPhaseVM), nameof(CharGenClassPhaseVM.OnSelectorArchetypeChanged), new Type[] { typeof(BlueprintArchetype) })]
-        static class CharGenClassPhaseVM_OnSelectorArchetypeChanged_Patch {
-            static bool Prefix(CharGenClassPhaseVM __instance, BlueprintArchetype archetype) {
+        [HarmonyPatch(typeof(CharGenClassPhaseVM), nameof(CharGenClassPhaseVM.OnSelectorArchetypeChanged), typeof(BlueprintArchetype))]
+        static class CharGenClassPhaseVM_OnSelectorArchetypeChanged_Patch
+        {
+            static bool Prefix(CharGenClassPhaseVM __instance, BlueprintArchetype archetype)
+            {
                 if (!Settings.MultiArchetype) { return true; }
                 __instance.UpdateTooltipTemplate(false);
-                if (__instance.LevelUpController.State.SelectedClass == null) {
-                    return false;
+
+                if (__instance.LevelUpController.State.SelectedClass == null && archetype != null)
+                {
+                    __instance.LevelUpController.SelectClass(archetype.GetParentClass(), ignoreAlignment: true);
                 }
-                var Progression = __instance.LevelUpController.Preview.Progression;
-                var classData = __instance.LevelUpController.Preview
+
+                if (__instance.LevelUpController.State.SelectedClass != null && archetype == null)
+                {
+                    BlueprintCharacterClass selectedClass = __instance.LevelUpController.State.SelectedClass;
+                    __instance.LevelUpController.RemoveArchetype();
+                    __instance.LevelUpController.RemoveClass();
+                    __instance.LevelUpController.SelectClass(selectedClass);
+                }
+
+                UnitProgressionData Progression = __instance.LevelUpController.Preview.Progression;
+                ClassData classData = __instance.LevelUpController.Preview
                     .Progression.GetClassData(__instance.LevelUpController.State.SelectedClass);
 
-                if (classData != null && (archetype != null ? !Progression.CanAddArchetype(classData.CharacterClass, archetype) : true)) {
-                    classData.Archetypes.ForEach(a => __instance.LevelUpController.RemoveArchetype(a));
+                if (classData != null && (archetype != null ? !Progression.CanAddArchetype(classData.CharacterClass, archetype) : true))
+                {
+                    classData.Archetypes.ForEach(delegate (BlueprintArchetype a)
+                    {
+                        __instance.LevelUpController.RemoveArchetype(a);
+                    });
                 }
                 __instance.LevelUpController.RemoveArchetype(archetype);
-                if (archetype != null && !__instance.LevelUpController.AddArchetype(archetype)) {
-                    MainThreadDispatcher.Post( _ =>  __instance.SelectedArchetypeVM.Value = null, null);
+                if (archetype != null)
+                {
+                    __instance.LevelUpController.AddArchetype(archetype);
                 }
                 __instance.UpdateClassInformation();
                 return false;
